@@ -15,26 +15,40 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder passwords =
+            new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
 
 
-    @Transactional(readOnly = true)
+    @Transactional
     public MemberUser doLogin(String userId, String userPwd) {
-        return userRepository.getMemberUserByIdAndPwd(userId, userPwd).orElseThrow(DuplicatedLoginIdException::new);
+        MemberUser member = userRepository.getMemberUserById(userId).orElseThrow(DuplicatedLoginIdException::new);
+        String stored = member.getUserPwd();
+        if (userPwd == null || stored == null) throw new DuplicatedLoginIdException();
+        if (stored.startsWith("$2")) {
+            if (!passwords.matches(userPwd, stored)) throw new DuplicatedLoginIdException();
+        } else {
+            // Legacy accounts are upgraded after an exact, successful password check.
+            if (!java.security.MessageDigest.isEqual(stored.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    userPwd.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                throw new DuplicatedLoginIdException();
+            }
+            if (userRepository.updatePassword(member.getUserNo(), stored, passwords.encode(userPwd)) != 1) {
+                throw new DuplicatedLoginIdException();
+            }
+        }
+        return new MemberUser(member.getUserNo(), member.getUserId(), null);
     }
 
 
     @Transactional(readOnly = true)
     public boolean isValidRegister(String userId, String nickname) {
-        if (userRepository.isUserIdExists(userId) != 1 && userRepository.isNicknameExists(nickname) != 1) {
-            return true;
-        }
-        return false;
+        return !isUserIdExists(userId) && !isNicknameExists(nickname);
     }
 
 
     @Transactional
     public void makeMemberUser(String userId, String userPwd) {
-        if (userRepository.makeMemberUser(userId, userPwd) == 0) {
+        if (userRepository.makeMemberUser(userId, passwords.encode(userPwd)) == 0) {
             throw new MakeMemberException();
         }
     }

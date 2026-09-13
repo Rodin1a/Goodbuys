@@ -35,7 +35,7 @@ public class EmailRestController {
             HttpSession sendCodeSession = request.getSession();
             sendCodeSession.setAttribute("sendCode", sendCode);
             sendCodeSession.setAttribute("sendEmail", email);
-            sendCodeSession.setMaxInactiveInterval(180); //3분
+            sendCodeSession.setAttribute("sendCodeExpiresAt", System.currentTimeMillis() + 180_000);
 
 
         } catch (Exception e) {

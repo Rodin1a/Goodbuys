@@ -42,3 +42,5 @@ application.properties
 email.properties
 
 
+
+.gradle-user-home/

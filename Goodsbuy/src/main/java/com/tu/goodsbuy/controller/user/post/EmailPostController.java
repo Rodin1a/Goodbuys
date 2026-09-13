@@ -25,8 +25,9 @@ public class EmailPostController {
     public String checkEmailCode(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
 
-        if (!(Boolean) request.getSession().getAttribute("emailAuth")) {
+        if (!Boolean.TRUE.equals(request.getSession().getAttribute("emailAuth"))) {
             ScriptWriterUtil.writeAndRedirect(response, "email 인증을 완료하지 않았습니다.", "/");
+            return null;
         }
 
         request.getSession().removeAttribute("emailAuth");
@@ -34,6 +35,7 @@ public class EmailPostController {
     }
 
 
+    @org.springframework.transaction.annotation.Transactional
     @PostMapping("/email-code") // 인증번호 확인
     public void checkEmailCode(@RequestParam String receiveCode,
                                HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -41,12 +43,15 @@ public class EmailPostController {
         String sendCode = (String) request.getSession().getAttribute("sendCode");
         String sendEmail = (String) request.getSession().getAttribute("sendEmail");
 
-        if (sendCode == null) {
+        Long expiresAt = (Long) request.getSession().getAttribute("sendCodeExpiresAt");
+        if (sendCode == null || expiresAt == null || System.currentTimeMillis() >= expiresAt) {
             ScriptWriterUtil.writeAndRedirect(response, "이메일 인증 유효시간을 초과하였습니다.", "/profile");
+            return;
         }
 
         if (!sendCode.equals(receiveCode)) {
             ScriptWriterUtil.writeAndRedirect(response, "이메일 인증 코드가 일치하지 않습니다.", "/email");
+            return;
         }
 
 

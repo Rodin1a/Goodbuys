@@ -1,53 +1,64 @@
 package com.tu.goodsbuy.global.config;
 
+import com.tu.goodsbuy.model.dto.MemberUser;
+import com.tu.goodsbuy.service.ChatService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.web.socket.config.annotation.*;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
-@Slf4j
 @Configuration
 @RequiredArgsConstructor
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-
+    private final ChatService chatService;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // 클라이언트가 메시지 발행시 /pub/* 경로로 전송
         registry.setApplicationDestinationPrefixes("/pub");
-
-
-        // 클라이언트가 메시지를 /sub/* 경로로 구독
         registry.enableSimpleBroker("/sub");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // without SockJS
-        registry.addEndpoint("/ws");
-
-        // with SockJS
         registry.addEndpoint("/ws")
-                .withSockJS()
-                .setDisconnectDelay(15 * 1000)
-                .setHeartbeatTime(5 * 1000);
+                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .withSockJS();
     }
 
-    /*@Override
+    @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompHandler);
-    }*/
-
-
-    /*@Bean
-    public WebSocketMessageBrokerStats localWebSocketMessageBrokerStats(WebSocketMessageBrokerStats webSocketMessageBrokerStats) {
-        webSocketMessageBrokerStats.setLoggingPeriod(30 * 1000);
-        return webSocketMessageBrokerStats;
-    }*/
-
+        registration.interceptors(new ChannelInterceptor() {
+            @Override
+            public Message<?> preSend(Message<?> message, MessageChannel channel) {
+                StompHeaderAccessor headers = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                if (headers == null) throw new IllegalArgumentException("Missing STOMP headers");
+                var command = headers.getCommand();
+                if (command != StompCommand.CONNECT && command != StompCommand.SEND
+                        && command != StompCommand.SUBSCRIBE) return message;
+                var attributes = headers.getSessionAttributes();
+                MemberUser member = attributes == null ? null : (MemberUser) attributes.get("loginMember");
+                if (member == null) throw new IllegalArgumentException("Login required");
+                if (command != StompCommand.CONNECT) {
+                    String destination = headers.getDestination();
+                    String pattern = command == StompCommand.SUBSCRIBE
+                            ? "^/sub/(messages|chat)/[0-9]+$" : "^/pub/(enter|chat)/[0-9]+$";
+                    if (destination == null || !destination.matches(pattern)) {
+                        throw new IllegalArgumentException("Invalid chat destination");
+                    }
+                    Long roomNo = Long.valueOf(destination.substring(destination.lastIndexOf('/') + 1));
+                    chatService.getRecipientIdBySenderNo(roomNo, member.getUserNo());
+                }
+                return message;
+            }
+        });
+    }
 }
-

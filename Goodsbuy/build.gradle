@@ -1,67 +1,36 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.1.2'
-    id 'io.spring.dependency-management' version '1.1.2'
+    id 'war'
+    id 'org.springframework.boot' version '3.5.16'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.tu'
 version = '0.0.1-SNAPSHOT'
 
-java {
-    sourceCompatibility = '17'
-}
+repositories { mavenCentral() }
 
-
-repositories {
-    mavenCentral()
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
 }
 
 dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-
-    // jsp jstl
-    implementation 'org.apache.tomcat.embed:tomcat-embed-jasper' // jsp
-    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api' //jstl
-    implementation 'jakarta.servlet:jakarta.servlet-api'
+    implementation 'org.springframework.security:spring-security-crypto'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
+    implementation 'org.apache.tomcat.embed:tomcat-embed-jasper'
+    implementation 'jakarta.servlet.jsp.jstl:jakarta.servlet.jsp.jstl-api'
     implementation 'org.glassfish.web:jakarta.servlet.jsp.jstl'
-    //jsp jstl end
-
-
-    implementation 'mysql:mysql-connector-java:8.0.33'  //0919 jdbc
-
-    // lombok
+    runtimeOnly 'com.mysql:mysql-connector-j'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    // lombok end
-
-
-    // mybatis
-    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.2'
-
-
-    // validation
-    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation', version: '2.5.6'
-
-    // SLF4J
-    implementation 'org.springframework.boot:spring-boot-starter-logging' // SLF4J를 Spring Boot에 추가
-    implementation 'org.slf4j:slf4j-api' // SLF4J API
-    // SLF4J END
-
-
-    //springboot mail
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
-    //springboot mail end
-
-    //websocket
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
-    //websocket end
-
-
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
-}
+tasks.named('test') { useJUnitPlatform() }

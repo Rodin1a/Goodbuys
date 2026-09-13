@@ -13,11 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
@@ -54,66 +52,49 @@ public class ProfileService {
     }
 
 
-    public String makeFolder(String imagePath) {
-        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String folderPath = date.replace("/", File.separator);
-
-
-        File uploadPathFolder = new File(imagePath, folderPath);
-
-
-        if (!uploadPathFolder.exists()) {
-            uploadPathFolder.mkdirs();
-        } else {
-            log.info("already [" + folderPath + "] folder exists");
-        }
-        return folderPath;
-    }
-
     public String uploadSaveImageAndGetIdentifier(String imagePath, MultipartFile file) {
-
-        if (!file.getContentType().startsWith("image")) {
-            log.warn("this file is not image type");
+        if (file == null || file.isEmpty()) {
             throw new NotImageFileException();
         }
-
-        String fileName = file.getOriginalFilename()
-                .substring(file.getOriginalFilename().lastIndexOf("//") + 1);
-
-
-        String folderPath = makeFolder(imagePath);
-
-        String uuid = UUID.randomUUID().toString();
-        String saveName = imagePath + "/" + folderPath + "/" + uuid + "_" + fileName;
-        //ex) profileImage.2023.09.18.uuid_filename
-        Path savePath = Paths.get(saveName);
+        try (var input = file.getInputStream()) {
+            if (javax.imageio.ImageIO.read(input) == null) {
+                throw new NotImageFileException();
+            }
+        } catch (IOException e) {
+            throw new NotImageFileException();
+        }
+        String original = Objects.toString(file.getOriginalFilename(), "image")
+                .replace('\\', '/');
+        String name = original.substring(original.lastIndexOf('/') + 1)
+                .replaceAll("[^a-zA-Z0-9._-]", "_");
+        if (!name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(png|jpe?g|gif|bmp)$")) {
+            throw new NotImageFileException();
+        }
+        String identifier = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"))
+                + "/" + UUID.randomUUID() + "_" + name;
+        Path target = Path.of(imagePath).toAbsolutePath().normalize().resolve(identifier);
         try {
-            file.transferTo(savePath);
+            Files.createDirectories(target.getParent());
+            file.transferTo(target);
         } catch (IOException e) {
             throw new FileTransferException();
         }
-        log.info("Saved Photos ==> " + folderPath + File.separator + uuid + "_" + fileName);
-
-        String srcPath = folderPath.replace(File.separator, "/");
-
-        return srcPath + "/" + uuid + "_" + fileName;
+        return identifier;
     }
 
     public void deleteImage(String imagePath, String imageUrl) {
-
-        try {
-            if (Objects.nonNull(imageUrl)) {
-                String filePath = imagePath + "/" + imageUrl.replace("/", File.separator);
-                Path deletePath = Paths.get(filePath);
-                Files.deleteIfExists(deletePath);
-                log.info("Deleted Image ==> " + deletePath);
-            }
-        } catch (IOException e) {
-            log.error("Failed to delete image: " + e);
+        if (imageUrl == null) return;
+        Path root = Path.of(imagePath).toAbsolutePath().normalize();
+        Path target = root.resolve(imageUrl).normalize();
+        if (!target.startsWith(root) || target.equals(root)) {
+            throw new IllegalArgumentException("Image path is outside upload directory");
         }
-
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            log.warn("Failed to delete image: {}", target, e);
+        }
     }
-
 
     @Transactional
     public void setEmailVerificationStatus(Long userNo) {
@@ -148,6 +129,7 @@ public class ProfileService {
 
 
         if (profileRepository.setImgUrlByUserNo(imgURL, userNo) == 0) {
+            throw new GetProfileException();
         }
     }
 

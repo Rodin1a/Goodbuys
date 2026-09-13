@@ -4,7 +4,6 @@ import com.tu.goodsbuy.model.dto.ChatMessage;
 import com.tu.goodsbuy.model.dto.ChatRoom;
 import com.tu.goodsbuy.repository.param.ChatRoomBuilder;
 import com.tu.goodsbuy.repository.param.InsertChatMessageDto;
-import com.tu.goodsbuy.service.ChatService;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -48,7 +47,7 @@ public interface ChatRepository {
 
 
     @Update("UPDATE chat_room SET product_image_url=#{imageURL} WHERE product_no =#{productNo}")
-    int updateProductImgUrlChatRoomByProductNo(String imgURL, String productNo);
+    int updateProductImgUrlChatRoomByProductNo(@Param("imageURL") String imgURL, @Param("productNo") String productNo);
 
 
     /*@Options(useGeneratedKeys = true, keyProperty = "messageNo", keyColumn = "message_no")

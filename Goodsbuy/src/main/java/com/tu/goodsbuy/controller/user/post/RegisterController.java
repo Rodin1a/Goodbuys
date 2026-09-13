@@ -4,7 +4,6 @@ import com.tu.goodsbuy.controller.param.RegisterForm;
 import com.tu.goodsbuy.service.ProfileService;
 import com.tu.goodsbuy.service.UserService;
 import com.tu.goodsbuy.global.util.ScriptWriterUtil;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +22,13 @@ public class RegisterController {
     private final ProfileService profileService;
 
 
+    @org.springframework.transaction.annotation.Transactional
     @PostMapping("/register.do")
     public String doRegister(@Valid RegisterForm registerForm, BindingResult br, RedirectAttributes retry,
                             HttpServletResponse response) throws IOException {
+        if (!java.util.Objects.equals(registerForm.getUserPwd(), registerForm.getConfirmPassword())) {
+            br.rejectValue("confirmPassword", "mismatch", "비밀번호가 일치하지 않습니다.");
+        }
         if (br.hasErrors()) {
             retry.addFlashAttribute("registerForm", registerForm);
             retry.addFlashAttribute("errors", br);
@@ -37,11 +40,12 @@ public class RegisterController {
             profileService.makeMemberProfile(registerForm.getUserId(), registerForm.getNickname());
         } else {
             ScriptWriterUtil.writeAndRedirect(response, "ID나 NICKNAME 중복을 확인하세요.", "/register");
+            return null;
         }
 
         ScriptWriterUtil.writeAndRedirect(response, "회원가입에 성공하셨습니다", "/login");
 
-        return "users/login";
+        return null;
     }
 
 

@@ -1,29 +1,20 @@
 package com.tu.goodsbuy.global.config;
 
+import java.nio.file.Path;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+    @Value("${app.upload-path}")
+    private String uploadPath;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-
-        registry.addResourceHandler("/css/**")
-                .addResourceLocations("classpath:/static/css/");
-
-        registry.addResourceHandler("/img/**")
-                .addResourceLocations("classpath:/static/img/");
-
-        registry.addResourceHandler("/js/**")
-                .addResourceLocations("classpath:/static/js/");
-
-
+        String location = Path.of(uploadPath).toAbsolutePath().normalize().toUri().toString();
         registry.addResourceHandler("/multipartImg/**")
-                .addResourceLocations("file:///C:/Users/csc19/goodsbuy/multipartImg/");
-        // 외부경로 등록
-
-
+                .addResourceLocations(location.endsWith("/") ? location : location + "/");
     }
 }

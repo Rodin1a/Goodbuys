@@ -39,12 +39,12 @@ public class UserProfilePostController {
 
         profileService.setIntroductionByUserNo(introduction.trim(), loginMember.getUserNo());
 
-        if (!file.isEmpty()) {
+        if (file != null && !file.isEmpty()) {
             //마이페이지  사진 업데이트
-            profileService.deleteImage(
-                    profileImagePath, profileService.getMemberProfileByUserNo(loginMember.getUserNo()).getImageURL());
+            String previousImage = profileService.getMemberProfileByUserNo(loginMember.getUserNo()).getImageURL();
             String fileName = profileService.uploadSaveImageAndGetIdentifier(profileImagePath, file);
             profileService.setImgUrlByUserNo(fileName, loginMember.getUserNo());
+            profileService.deleteImage(profileImagePath, previousImage);
 
             //채팅방 프로필 사진 업데이트
 

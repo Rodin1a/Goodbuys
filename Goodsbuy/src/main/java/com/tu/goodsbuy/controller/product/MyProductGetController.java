@@ -44,18 +44,4 @@ public class MyProductGetController {
         return "/profile/myProduct";
 
     }
-
-
-    @GetMapping("/purchase-history")
-    public String getPurchaseHistoryPage(Model model, HttpServletRequest request) {
-
-        List<Product> salesProductList = productService.getSalesHistoryProductListByUserNo(
-                ((MemberUser) request.getSession(false).getAttribute("loginMember")).getUserNo());
-        model.addAttribute("purchaseProductList", salesProductList);
-        model.addAttribute("divState", "구매한 상품");
-        model.addAttribute("state", "거래 완료");
-
-        return "/profile/myProduct";
-
-    }
 }

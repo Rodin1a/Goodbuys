@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 
 import java.io.IOException;
-import java.util.Objects;
 
 
 /**
@@ -33,8 +32,8 @@ public class LoginSessionFilter implements Filter {
             return;
         }
 
-        if (Objects.nonNull(req.getSession(false).getAttribute("loginMember"))) {
-            res.sendRedirect("goodsbuy/list");
+        if (req.getSession(false) != null && req.getSession(false).getAttribute("loginMember") != null) {
+            res.sendRedirect(req.getContextPath() + "/goodsbuy/list");
             return;
         }
         chain.doFilter(request, response);

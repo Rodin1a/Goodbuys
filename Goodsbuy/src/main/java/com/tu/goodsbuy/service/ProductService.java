@@ -23,19 +23,11 @@ public class ProductService {
 
 
     public List<Product> getProductListByLocation(String location) {
-        List<Product> productList = productRepository.getProductListByLocation(location);
-       /* if (productList.isEmpty()) {
-            throw new NoProductListException();
-        }*/
-        return productList;
+        return productRepository.getProductListByLocation(location);
     }
 
     public List<Product> getSearchProductListByProductNameAndLocation(String location, String productName) {
-        List<Product> productList = productRepository.getSearchProductListByProductNameAndLocation(location, productName);
-        /*if (productList.isEmpty()) {
-            throw new NoProductListException();
-        }*/
-        return productList;
+        return productRepository.getSearchProductListByProductNameAndLocation(location, productName);
     }
 
     public List<Product> getDibsProductListByUserNo(Long userNo) {
@@ -61,6 +53,12 @@ public class ProductService {
     public void increaseViewByProductNo(Long productNo) {
         if (productRepository.increaseViewByProductNo(productNo) == 0) {
             throw new IncreaseViewCountException();
+        }
+    }
+
+    public void requireOwner(String productNo, Long userNo) {
+        if (userNo == null || !userNo.equals(getProductByProductNo(Long.valueOf(productNo)).getUserNo())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
         }
     }
 
@@ -114,7 +112,7 @@ public class ProductService {
 
     public void registerSoldOut(String productNo) {
         if (productRepository.registerSoldOut(productNo) == 0) {
-
+            throw new ProductUpdateException();
         }
     }
 

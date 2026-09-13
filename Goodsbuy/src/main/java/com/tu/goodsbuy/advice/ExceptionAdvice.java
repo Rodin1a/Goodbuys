@@ -101,6 +101,11 @@ public class ExceptionAdvice {
         return "redirect:/errorPage";
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Void> responseStatus(org.springframework.web.server.ResponseStatusException e) {
+        return ResponseEntity.status(e.getStatusCode()).build();
+    }
+
     // 500에러처리
     @ExceptionHandler(Exception.class)
     public String handleException(Exception e) {

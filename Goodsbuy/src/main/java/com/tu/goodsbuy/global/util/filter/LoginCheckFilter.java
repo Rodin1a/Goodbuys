@@ -14,15 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 
 import java.io.IOException;
-import java.util.Objects;
 
 
 /**
  * 로그인 세션이 필요한 페이지면 로그인페이지로 보내기
  **/
-@WebFilter(urlPatterns = {"/profile", "/dibs", "/email",
-        "/profile/nickname , /sales-items , /sales-history , /purchase-history," ,
-                "/profile/location","/profile/email","/product/*", "/chat/*"})
+@WebFilter(urlPatterns = {"/profile/*", "/dibs", "/email", "/email-code", "/check-email",
+        "/users/nickname", "/sales-items", "/sales-history",
+        "/product/*", "/chat/*", "/ws/*"})
 @Slf4j
 @Order(1)
 public class LoginCheckFilter implements Filter {
@@ -35,12 +34,8 @@ public class LoginCheckFilter implements Filter {
         HttpServletResponse res = (HttpServletResponse) response;
 
 
-        if (req.getServletPath().contains("/js") || req.getServletPath().contains("/css")) {
-            log.info(req.getRequestURI());
-            chain.doFilter(request, response);
-        }
-
-        if (Objects.isNull(req.getSession(false).getAttribute("loginMember"))) {
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("loginMember") == null) {
             ScriptWriterUtil.writeAndRedirect(res, "로그인이 필요한 페이지입니다.", "/login");
             return;
         }

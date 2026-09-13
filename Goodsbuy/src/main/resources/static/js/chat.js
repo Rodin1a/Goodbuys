@@ -1,25 +1,30 @@
+function escapeHtml(value) {
+    return $('<div>').text(value == null ? '' : String(value)).html();
+}
+
 var stompClient = null;
 
 var roomNo;
 
 function connect(chatRoomNo, loginId) {
-    setConnected = false;
+    if (stompClient) stompClient.disconnect();
     var socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
 
         roomNo = chatRoomNo;
-        sendEnterMessage(chatRoomNo, loginId);
 
-        stompClient.subscribe('/sub/render/messages', function (message) { // 메세지 렌더링
+
+        stompClient.subscribe('/sub/messages/' + chatRoomNo, function (message) { // 메세지 렌더링
             renderMessages(JSON.parse(message.body), loginId);
         });
 
-        stompClient.subscribe('/sub/message', function (message) { // 메세지 전달받기
+        stompClient.subscribe('/sub/chat/' + chatRoomNo, function (message) { // 메세지 전달받기
             var msg = JSON.parse(message.body);
             // showMessage(msg.content, msg.createdDate, msg.senderNickname);
             subMessage(msg,loginId);
         });
+        sendEnterMessage(chatRoomNo, loginId);
     });
 }
 
@@ -44,12 +49,12 @@ function sendMessageRender(message, time) { //처음 채팅방 입장시 메세�
     var messageHtml = '<li class="me">';
     messageHtml += '<div class="entete">';
     messageHtml += '<h3>' + date + '&nbsp</h3>'; // 현재 시간 표시
-    /*messageHtml += '<h2>' + nickname + '</h2>';*/
+    /*messageHtml += '<h2>' + escapeHtml(nickname) + '</h2>';*/
     messageHtml += '<span class="status blue"></span>';
     messageHtml += '</div>';
     messageHtml += '<div class="triangle"></div>';
     messageHtml += '<div class="message">';
-    messageHtml += message;
+    messageHtml += escapeHtml(message);
     messageHtml += '</div>';
     messageHtml += '</li>';
     $("#chat").append(messageHtml);
@@ -72,12 +77,12 @@ function showMessage(message, time, nickname) { //받는 메세지
     var messageHtml = '<li class="you">';
     messageHtml += '<div class="entete">';
     messageHtml += '<span class="status green"></span>';
-    messageHtml += '<h2>' + nickname + '</h2>';
+    messageHtml += '<h2>' + escapeHtml(nickname) + '</h2>';
     messageHtml += '<h3>' + '&nbsp' + date + '</h3>'; // 현재 시간 표시
     messageHtml += '</div>';
     messageHtml += '<div class="triangle"></div>';
     messageHtml += '<div class="message">';
-    messageHtml += message;
+    messageHtml += escapeHtml(message);
     messageHtml += '</div>';
     messageHtml += '</li>';
     $("#chat").append(messageHtml);
@@ -182,16 +187,16 @@ function populateChatRoom(chatroom, loginUserNo) {
 
     if (loginUserNo === chatroom.userNo) {
         // 판매자인 경우
-        headerHTML += '<img src="/multipartImg/profileImage/' + chatroom.purchaseProfileUrl + '" alt="" style="width: 55px; height: 55px">';
+        headerHTML += '<img src="/multipartImg/profileImage/' + escapeHtml(chatroom.purchaseProfileUrl) + '" alt="" style="width: 55px; height: 55px">';
         headerHTML += '<div>';
-        headerHTML += '<h2><a href="#" style="text-decoration: none; color: inherit;">' + chatroom.purchaseNickname + '</a></h2>';
+        headerHTML += '<h2><a href="#" style="text-decoration: none; color: inherit;">' + escapeHtml(chatroom.purchaseNickname) + '</a></h2>';
         headerHTML += '<h3>' + date + '</h3>';
         headerHTML += '</div>';
     } else {
         // 판매자가 아닌 경우
-        headerHTML += '<img src="/multipartImg/profileImage/' + chatroom.userProfileUrl + '" alt="" style="width: 55px; height: 55px">';
+        headerHTML += '<img src="/multipartImg/profileImage/' + escapeHtml(chatroom.userProfileUrl) + '" alt="" style="width: 55px; height: 55px">';
         headerHTML += '<div>';
-        headerHTML += '<h2><a href="#" style="text-decoration: none; color: inherit;">' + chatroom.userNickname + '</a></h2>';
+        headerHTML += '<h2><a href="#" style="text-decoration: none; color: inherit;">' + escapeHtml(chatroom.userNickname) + '</a></h2>';
         headerHTML += '<h3>' + date + '</h3>';
         headerHTML += '</div>';
     }
@@ -206,12 +211,12 @@ function populateChatRoom(chatroom, loginUserNo) {
     chatHTML += '<div class="row ps-4 pb-1">';
     chatHTML += '<div class="col-auto">';
     chatHTML += '<div>';
-    chatHTML += '<img src="/multipartImg/productImage/' + chatroom.productImageUrl + '" style="height: 55px; width: 55px">';
+    chatHTML += '<img src="/multipartImg/productImage/' + escapeHtml(chatroom.productImageUrl) + '" style="height: 55px; width: 55px">';
     chatHTML += '</div>';
     chatHTML += '</div>';
     chatHTML += '<div class="col">';
     chatHTML += '<div class="pt-1" id="productInfo">';
-    chatHTML += '<a href="/product/' + chatroom.productNo + '" style="text-decoration: none; color: inherit;">' + chatroom.productName + '</a><br>';
+    chatHTML += '<a href="/product/' + chatroom.productNo + '" style="text-decoration: none; color: inherit;">' + escapeHtml(chatroom.productName) + '</a><br>';
     chatHTML += '<span>' + new Intl.NumberFormat('ko-KR').format(chatroom.productPrice) + '원</span>';
     chatHTML += '</div>';
     chatHTML += '</div>';
@@ -223,6 +228,7 @@ function populateChatRoom(chatroom, loginUserNo) {
 }
 
 function exitChatRoom() {
+    if (stompClient) stompClient.disconnect();
 
     if ($('#chatMessage')) {
         // chatMessage 요소가 존재하면 보이게 함

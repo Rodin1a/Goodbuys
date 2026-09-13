@@ -8,11 +8,11 @@ import java.util.Optional;
 
 @Mapper
 public interface UserRepository {
-    @Select("SELECT * " +
-            "FROM member_user " +
-            "WHERE user_id = #{user_id} AND user_pwd = #{user_pwd}")
-    Optional<MemberUser> getMemberUserByIdAndPwd(@Param("user_id") String userId, @Param("user_pwd") String userPwd);
+    @Select("SELECT * FROM member_user WHERE user_id = #{userId}")
+    Optional<MemberUser> getMemberUserById(String userId);
 
+    @Update("UPDATE member_user SET user_pwd = #{hash} WHERE user_no = #{userNo} AND user_pwd = #{previous}")
+    int updatePassword(@Param("userNo") Long userNo, @Param("previous") String previous, @Param("hash") String hash);
 
     @Insert("INSERT INTO " +
             "member_user(user_id,user_pwd) " +

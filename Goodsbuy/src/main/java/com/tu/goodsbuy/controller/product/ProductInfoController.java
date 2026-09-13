@@ -23,9 +23,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,13 +65,15 @@ public class ProductInfoController {
     }
 
     @PostMapping("/product/delete.do")
-    public String deleteProduct(@RequestParam String productNo) {
+    public String deleteProduct(@RequestParam String productNo, @SessionAttribute("loginMember") MemberUser member) {
+        productService.requireOwner(productNo, member.getUserNo());
         productService.deleteProductByProductNo(productNo);
         return "redirect:/goodsbuy/list";
     }
 
     @PostMapping("/product/soldOut.do") // 판매완료등록
-    public String soldOutProduct(@RequestParam String productNo) {
+    public String soldOutProduct(@RequestParam String productNo, @SessionAttribute("loginMember") MemberUser member) {
+        productService.requireOwner(productNo, member.getUserNo());
         productService.registerSoldOut(productNo);
         return "redirect:/product/" + productNo;
     }
@@ -82,6 +81,7 @@ public class ProductInfoController {
     @GetMapping("/product/update")
     public String getProductUpdatePage(@SessionAttribute(value = "loginMember", required = false) MemberUser memberUser,
                                        @RequestParam String productNo, Model model) {
+        productService.requireOwner(productNo, memberUser.getUserNo());
 
         model.addAttribute("product",
                 productService.getProductByProductNo(Long.valueOf(productNo)));
@@ -98,24 +98,27 @@ public class ProductInfoController {
 
     @PostMapping("/product/update.do")
     public String updateProduct(@Valid ProductUpdateParam productUpdateParam, BindingResult br,
-                                @RequestParam(required = false) MultipartFile file, Model model) {
+                                @RequestParam(required = false) MultipartFile file, Model model,
+                                @SessionAttribute("loginMember") MemberUser member) {
 
         if (br.hasErrors()) {
             return "redirect:/errorPage";
         }
 
-        if (Objects.nonNull(file)) {
-            profileService.deleteImage(productImagePath,
-                    productService.getProductImageUrlByProductNo(productUpdateParam.getProductNo()));
+        productService.requireOwner(productUpdateParam.getProductNo(), member.getUserNo());
+
+        if (file != null && !file.isEmpty()) {
+            String previousImage = productService.getProductImageUrlByProductNo(productUpdateParam.getProductNo());
             String fileName = profileService.uploadSaveImageAndGetIdentifier(productImagePath, file);
             productService.updateProductImgUrlByProductNo(fileName, productUpdateParam.getProductNo());
             chatService.updateProductImgUrlByProductNo(fileName, productUpdateParam.getProductNo());
+            profileService.deleteImage(productImagePath, previousImage);
         }
 
         productService.updateProductInfoByProductUpdateParam(productUpdateParam);
         chatService.updateProductInfoChatRoomByProductUpdateParam(productUpdateParam);
 
-        return "product/productUpdate";
+        return "redirect:/product/" + productUpdateParam.getProductNo();
     }
 
 
@@ -123,6 +126,9 @@ public class ProductInfoController {
     public String doDibsProduct(@SessionAttribute(value = "loginMember", required = false) MemberUser memberUser,
                                 @RequestParam String productNoDibsState) {
 
+        if (!productNoDibsState.matches("[0-9]+/[01]")) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
         String[] arr = productNoDibsState.split("/");
 
         String productNo = arr[0];
@@ -146,10 +152,12 @@ public class ProductInfoController {
 
         if (memberProfile.getEmailCheck() == 0) {
             ScriptWriterUtil.writeAndRedirect(response, "이메일 인증을 진행해주세요.", "/profile/email");
+            return null;
         }
 
         if (Objects.isNull(memberProfile.getLocation())) {
             ScriptWriterUtil.writeAndRedirect(response, "마이페이지에서 지역을 설정 해주세요", "/profile/location");
+            return null;
         }
 
         model.addAttribute("profile", memberProfile);
@@ -167,15 +175,19 @@ public class ProductInfoController {
         // valid
         if (br.hasErrors()) {
             ScriptWriterUtil.writeAndRedirect(response,
-                    Objects.requireNonNull(br.getFieldError("productPrice")).getDefaultMessage(), "/product/create");
+                    br.getAllErrors().get(0).getDefaultMessage(), "/product/create");
+            return null;
         }
 
 
         MemberProfile memberProfile = profileService.getMemberProfileByUserNo(loginMember.getUserNo());
 
+        if (memberProfile.getEmailCheck() == 0 || memberProfile.getLocation() == null) {
+            return "redirect:/profile";
+        }
         String fileName = null;
 
-        if (Objects.nonNull(file)) {
+        if (file != null && !file.isEmpty()) {
             fileName = profileService.uploadSaveImageAndGetIdentifier(productImagePath, file);
         }
 

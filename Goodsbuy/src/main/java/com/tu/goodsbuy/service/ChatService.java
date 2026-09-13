@@ -2,11 +2,8 @@ package com.tu.goodsbuy.service;
 
 
 import com.tu.goodsbuy.controller.param.ProductUpdateParam;
-import com.tu.goodsbuy.global.exception.product.ProductUpdateException;
-import com.tu.goodsbuy.global.exception.profile.GetProfileException;
 import com.tu.goodsbuy.model.dto.ChatMessage;
 import com.tu.goodsbuy.model.dto.ChatRoom;
-import com.tu.goodsbuy.model.dto.MemberProfile;
 import com.tu.goodsbuy.repository.param.InsertChatMessageDto;
 import com.tu.goodsbuy.repository.ChatRepository;
 import com.tu.goodsbuy.repository.param.ChatRoomBuilder;
@@ -43,16 +40,13 @@ public class ChatService {
 
     @Transactional
     public boolean isExistChatRoom(Long userNo, String productNo) {
-        if (chatRepository.isExistChatRoom(userNo, productNo) == 1) {
-            return true;
-        }
-        return false;
+        return chatRepository.isExistChatRoom(userNo, productNo) == 1;
     }
 
     @Transactional
     public void createChatRoom(ChatRoomBuilder chatRoomBuilder) {
         if (chatRepository.createChatRoom(chatRoomBuilder) == 0) {
-            //TODO 예외 처리 해야함
+            throw new IllegalStateException("Chat room was not created");
         }
     }
 
@@ -69,9 +63,7 @@ public class ChatService {
         String productName = productUpdateParam.getProductName();
         String productPrice = productUpdateParam.getProductPrice();
 
-        if (chatRepository.updateProductInfoChatRoomByProductUpdateParam(productNo, productName, productPrice) == 0) {
-            throw new ProductUpdateException();
-        }
+        chatRepository.updateProductInfoChatRoomByProductUpdateParam(productNo, productName, productPrice);
     }
 
 
@@ -99,10 +91,13 @@ public class ChatService {
 
         ChatRoom chatRoom = chatRepository.findRoomByRoomNo(roomNo).orElseThrow();
 
-        if (senderId == chatRoom.getUserNo()) {
+        if (java.util.Objects.equals(senderId, chatRoom.getUserNo())) {
             return chatRoom.getPurchaseNo();
         }
 
+        if (!java.util.Objects.equals(senderId, chatRoom.getPurchaseNo())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN);
+        }
         return chatRoom.getUserNo();
     }
 

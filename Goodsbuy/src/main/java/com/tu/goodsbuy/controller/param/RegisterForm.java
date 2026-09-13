@@ -9,28 +9,34 @@ import lombok.NoArgsConstructor;
 
 
 @Getter
+@lombok.Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class RegisterForm {
 
 
     @Pattern(regexp = "^[a-zA-Z0-9]{4,20}$", message = "아이디 규칙에 맞게 입력해주세요")
+    @jakarta.validation.constraints.NotBlank
     private String userId;
 
 
     @Pattern(regexp = "(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&+=!])(?!.*\\s).{8,20}$", message = "비밀번호 규칙에 맞게 입력해주세요")
+    @jakarta.validation.constraints.NotBlank
     private String userPwd;
 
 
     @Pattern(regexp = "(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&+=!])(?!.*\\s).{8,20}$", message = "비밀번호 규칙에 맞게 입력해주세요")
+    @jakarta.validation.constraints.NotBlank
     private String confirmPassword;
 
 
     @Pattern(regexp = "^[0-9]{8}$", message = "생일 형식에 맞게 작성해주세요")
+    @jakarta.validation.constraints.NotBlank
     private String birth;
 
 
     @Pattern(regexp = "^[a-zA-Z0-9가-힣]{4,20}$", message = "닉네임 형식에 맞게 작성해주세요.")
+    @jakarta.validation.constraints.NotBlank
     private String nickname;
 
 

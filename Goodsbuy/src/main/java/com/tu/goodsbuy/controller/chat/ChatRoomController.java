@@ -5,7 +5,6 @@ import com.tu.goodsbuy.model.dto.ChatRoom;
 import com.tu.goodsbuy.model.dto.MemberUser;
 import com.tu.goodsbuy.service.ChatService;
 import com.tu.goodsbuy.service.ProfileService;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +43,7 @@ public class ChatRoomController {
     // /pub/enter/{roomId} request 요청
     // /sub/chat/{roomId} response
     @MessageMapping("/enter/{roomId}")
-    @SendTo("/sub/render/messages")
+    @SendTo("/sub/messages/{roomId}")
     public List<ChatMessage> enter(@DestinationVariable("roomId") String roomId, Map<String, String> memberId) {
 
         log.info("enter room : " + roomId + ", member : " + memberId.get("memberId"));
@@ -57,10 +56,15 @@ public class ChatRoomController {
     // /pub/enter/{roomId} request 요청
     // /sub/chat/{roomId} response
     @MessageMapping("/chat/{roomId}")
-    @SendTo("/sub/message")
-    public ChatMessage sendChat(@DestinationVariable("roomId") String roomId, Map<String, String> data) {
+    @SendTo("/sub/chat/{roomId}")
+    public ChatMessage sendChat(@DestinationVariable("roomId") String roomId, Map<String, String> data,
+                                SimpMessageHeaderAccessor headers) {
         String content = data.get("message");
-        String userNo = data.get("userNo");
+        MemberUser member = (MemberUser) headers.getSessionAttributes().get("loginMember");
+        String userNo = member.getUserNo().toString();
+        if (content == null || content.isBlank() || content.length() > 4000) {
+            throw new IllegalArgumentException("Message must contain 1 to 4000 characters");
+        }
 
 
         //return chatMessage
@@ -73,7 +77,9 @@ public class ChatRoomController {
     // 채팅방 render
     @ResponseBody
     @PostMapping("/chat/render")
-    public ResponseEntity<ChatRoom> renderChatRoom(@RequestBody Map<String, String> roomId) {
+    public ResponseEntity<ChatRoom> renderChatRoom(@RequestBody Map<String, String> roomId,
+                                                 @SessionAttribute("loginMember") MemberUser member) {
+        chatService.getRecipientIdBySenderNo(Long.valueOf(roomId.get("roomId")), member.getUserNo());
         ChatRoom chatRoom = chatService.findRoomByRoomNo(Long.valueOf(roomId.get("roomId")));
         return ResponseEntity.ok(chatRoom);
     }

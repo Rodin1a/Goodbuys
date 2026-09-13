@@ -44,9 +44,6 @@
                         <li>
                             <a href="/sales-history"><i class="bi bi-receipt"></i>판매 내역</a>
                         </li>
-                        <li>
-                            <a href="/purchase-history"><i class="bi bi-bag-check"></i>구매 내역</a>
-                        </li>
                     </ul>
                 </li>
             </ul>

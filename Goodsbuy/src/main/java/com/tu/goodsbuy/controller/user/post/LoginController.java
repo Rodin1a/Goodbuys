@@ -25,17 +25,17 @@ public class LoginController {
     private final UserService userService;
 
     @PostMapping("/login.do")
-    public String doLogin(@Valid LoginForm loginForm, BindingResult br, RedirectAttributes rttr, Model model) {
+    public String doLogin(@Valid LoginForm loginForm, BindingResult br, RedirectAttributes rttr, Model model, jakarta.servlet.http.HttpServletRequest request) {
 
         if (br.hasErrors()) {
-            if (!loginForm.getUsername().equals("choo")&& !loginForm.getUsername().equals("min"))  { // imsi 관리자 아이디
-                rttr.addFlashAttribute("errors", br);
-                return "redirect:/login";
-            }
+            rttr.addFlashAttribute("errors", br);
+            return "redirect:/login";
         }
 
 
         MemberUser loginMember = userService.doLogin(loginForm.getUsername(), loginForm.getPassword());
+        request.getSession();
+        request.changeSessionId();
         model.addAttribute("loginMember", loginMember);
 
         return "redirect:/goodsbuy/list";
@@ -43,8 +43,9 @@ public class LoginController {
 
 
     @PostMapping("/logout.do")
-    public String doLogOut(SessionStatus sessionStatus) {
+    public String doLogOut(SessionStatus sessionStatus, jakarta.servlet.http.HttpServletRequest request) {
         sessionStatus.setComplete();
+        if (request.getSession(false) != null) request.getSession(false).invalidate();
 
         return "redirect:/goodsbuy/list";
     }

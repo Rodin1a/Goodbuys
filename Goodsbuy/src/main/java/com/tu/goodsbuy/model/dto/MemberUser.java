@@ -14,6 +14,8 @@ public class MemberUser {
 
     private Long userNo;
     private String userId;
+    @ToString.Exclude
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String userPwd;
 
 
